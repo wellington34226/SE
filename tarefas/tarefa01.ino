@@ -11,7 +11,7 @@ uint64_t timeButtonDown;
 uint64_t timeButtonUp;
 uint64_t holdButtons;
 
-void delayLedPrint(void){
+void displayPrint(void){
 	String 	msg = "";
   if(states & (1 << 2)){
     msg += "    LOCK LED: ";
@@ -44,7 +44,6 @@ void delayLedPrint(void){
   i2cLcd.print(msg);
   Serial.print(msg);
   Serial.println();
-  timeLed = millis();
 }
 
 void setup() {
@@ -66,20 +65,20 @@ void setup() {
   i2cLcd.print("     TAREFA  01     ");
   Serial.print("     TAREFA  01     ");
   Serial.println();
-  delayLedPrint();
+  displayPrint();
   //inicia ativando todos os bits para do debaunce  248ms
   states = (1 << 7) | (1 << 6) | (1 << 5) | (1 << 4) | (1 << 3);
 }
 
 void loop() {
-  while(states & (1 << 2));//caso seja setado para true trava a execuÁ„o
+  while(states & (1 << 2));//caso seja setado para true trava a execu√ß√£o
   if(millis() >= timeLed+delayLed){
     timeLed = millis();
 		//faz o LED piscar
 		PORTB ^= (1 << PB0);//ledState = ~ledState;digitalWrite(8,ledState);
   }
   //buttons control
-	uint8_t curButtons = (PIND & B00001100) >> 2;//m·scara para pegar os pinos PD2 e PD3
+	uint8_t curButtons = (PIND & B00001100) >> 2;//m√°scara para pegar os pinos PD2 e PD3
 	switch(states & B00000011){
     case 0://DOWN OFF | UP OFF
 			switch(curButtons){
@@ -96,7 +95,7 @@ void loop() {
 						if(delayLed < 10000){
 							delayLed += 100;
 						}
-						delayLedPrint();
+						displayPrint();
 						states ^= (1 << 1);
 					}
 					break;
@@ -106,7 +105,7 @@ void loop() {
 						if(delayLed > 100){
 							delayLed -= 100;
 						}
-						delayLedPrint();
+						displayPrint();
 						states ^= (1 << 0);
 					}
 					break;
@@ -126,7 +125,7 @@ void loop() {
 						if(delayLed < 10000){
 							delayLed += 100;
 						}
-						delayLedPrint();
+						displayPrint();
 	          states ^= (1 << 0);
 						states ^= (1 << 1);
 					}
@@ -137,7 +136,7 @@ void loop() {
 	          if(delayLed > 100){
 							delayLed -= 100;
 						}
-						delayLedPrint();
+						displayPrint();
           }
 					break;
 				case 0:
@@ -159,7 +158,7 @@ void loop() {
 	          if(delayLed < 10000){
 							delayLed += 100;
 						}
-						delayLedPrint();
+						displayPrint();
           }
 					break;
 				case 1:
@@ -168,7 +167,7 @@ void loop() {
 						if(delayLed < 10000){
 							delayLed -= 100;
 						}
-						delayLedPrint();
+						displayPrint();
 	          states ^= (1 << 0);
 						states ^= (1 << 1);
 					}
@@ -183,7 +182,7 @@ void loop() {
 				case 0:
 					if(millis()>=holdButtons+500){
 	          states |= (1 << 2);
-						delayLedPrint();
+						displayPrint();
 	        }
 					states ^= (1 << 0);
 					states ^= (1 << 1);
@@ -191,14 +190,14 @@ void loop() {
 				case 1:
 					if(millis()>=holdButtons+500){
 	          states |= (1 << 2);
-						delayLedPrint();
+						displayPrint();
 	        }
 					states ^= (1 << 0);
 					break;
 				case 2:
 					if(millis()>=holdButtons+500){
 	          states |= (1 << 2);
-						delayLedPrint();
+						displayPrint();
 	        }
 					states ^= (1 << 1);
 					break;
