@@ -4,7 +4,7 @@
 //LCD I2C for display delay LED and state
 LiquidCrystal_I2C i2cLcd(0x27,2,1,0,4,5,6,7,3,POSITIVE);
 //debaunce | LOCK LED | oldStateUp | oldStateDown
-uint8_t states = 0;
+uint8_t states = B11111000;
 uint64_t timeLed;
 uint16_t delayLed = 1000;//milliseconds
 uint64_t timeButtonDown;
@@ -66,8 +66,7 @@ void setup() {
   Serial.print("     TAREFA  01     ");
   Serial.println();
   displayPrint();
-  //inicia ativando todos os bits para do debaunce  248ms
-  states = (1 << 7) | (1 << 6) | (1 << 5) | (1 << 4) | (1 << 3);
+	timeLed = millis();
 }
 
 void loop() {
