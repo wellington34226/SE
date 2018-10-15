@@ -48,7 +48,7 @@ void displayPrint(void){
 
 void setup() {
   DDRD  &= ~(1 << PD2);PORTD &= ~(1 << PD2);//pinMode(2,INPUT);//button DOWN delay LED
-  DDRD  &= ~(1 << PD4);PORTD &= ~(1 << PD4);//pinMode(4,INPUT);//button UP delay LED
+  DDRD  &= ~(1 << PD3);PORTD &= ~(1 << PD3);//pinMode(4,INPUT);//button UP delay LED
 	DDRB  &= ~(1 << PB0);PORTB &= ~(1 << PB0);//pinMode(8,OUTPUT);digitalWrite(8,LOW);//set LED to LOW
   i2cLcd.begin(20,4);
   i2cLcd.clear();
