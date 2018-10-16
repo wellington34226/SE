@@ -20,4 +20,7 @@ Cada mudança no intervalo entre cada piscada é enviado via serial e apresentad
 
 # Tarefa 05: Timers
 * Relógio digital usando timers
-* Dois botões permitem acetar a hora e minuto
+* Dois botões permitem ajustar a hora e o minuto
+ * Segurando os dois botôes ao mesmo tempo por mais de 500ms o relógio entra no modo de configuração, onde cada botão permite incrementar a hora ou o minuto.
+ * Segurando os botões por mais de 500ms no modo de configuração o reloógio volta ao modo normal de operação com a hora definida.
+* A tela fica acessa por um minuto, após esse tempo ela apaga para economizar energia. Para reacender a tela basta clicar em um dos botões.
