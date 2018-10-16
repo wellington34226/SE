@@ -16,6 +16,7 @@ Cada mudança no intervalo entre cada piscada é enviado via serial e apresentad
 # Tarefa 03: Conversor ou Comparador Analógico
 * Uso do comparador analógico acrescentado a Tarefa 02 (conexões anteriores mantidas e código atualizado)
 * Sensor de força utilizado com o comparador analógico
+ * Quando pressionado também aciona o motor
 
 # Tarefa 05: Timers
 * Relógio digital usando timers
