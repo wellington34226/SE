@@ -23,4 +23,4 @@ Professor: [Francisco Santanna](https://github.com/fsantanna-uerj/SE)
   - Como cada sensor e atuador é conectado?
   - Como cada sensor e atuador é programado?
   - Ideia para projeto final?
-- [ ] **05** Timers
+- [x] **05** Timers
