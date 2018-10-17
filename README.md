@@ -6,6 +6,7 @@ Professor: [Francisco Santanna](https://github.com/fsantanna-uerj/SE)
 - GPIO / Entrada e Saída
   - Digital e Analógica
 - Sensores e Atuadores
+- Comparador e Conversor Analógico
 - Temporizadores
 - Comunicação Serial
   - USART, I2C, SPI
