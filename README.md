@@ -18,7 +18,7 @@ Professor: [Francisco Santanna](https://github.com/fsantanna-uerj/SE)
 - [x] **01** Piscar LED + 2 Botões + Debaunce
 - [x] **02** 2 Sensores + 2 Atuadores + GPIO
 - [x] **03** Conversor ou Comparador Analógico
-- [ ] **04** Apresentação Tarefas 02/03/05
+- [x] **04** Apresentação Tarefas 02/03/05
   - O que a aplicação faz?
   - Quais sensores e atuadores utilizados?
   - Como cada sensor e atuador é conectado?
