@@ -1,7 +1,7 @@
 /* Cáculo para estouro do timer
- * Estouro = Timer2_cont x prescaler x ciclo de máquina
+ * Estouro = Timer1_cont x prescaler x ciclo de máquina
  * Ciclo de máquina = 1/Fosc = 1/16E6 = 62,5ns = 62,5E-9s
- * Estouro = 156 x 1024 x 62,5E-9 = 9,984000
+ * Estouro = 15625 x 1024 x 62,5E-9 = 1s
 */
 #include <Arduino.h>
 #include <Wire.h>
@@ -10,73 +10,48 @@
 //LCD I2C for display delay LED and states
 LiquidCrystal_I2C i2cLcd(0x27,2,1,0,4,5,6,7,3,POSITIVE);
 
-uint64_t timeClock;
+#define SETTING "SETTING"
+#define NORMAL  "       "
+//uint64_t timeClock;
 uint64_t timeButtonHora;
 uint64_t timeButtonMinuto;
 uint64_t holdButtons;
-//interval | SET CLOCK | oldStateMinuto | oldStateHora
-uint8_t states   = B11111000;
-uint8_t hora     = 0;
-uint8_t minuto   = 0;
-uint8_t segundo  = 0;
-uint8_t msegundo = 0;//max 100*10
-
-void displayPrint(void){
-  PORTB ^= (1 << PB5);//faz LED_BUILTIN piscar
-  String msg=" ";
-  if(hora < 10){
-    msg += "0";
-  }
-  msg += hora;
+//intervalo | SET CLOCK | oldStateMinuto | oldStateHora
+uint8_t states  = 0xF8;
+//Cada digito do Relógio
+uint8_t segundo = 0;
+                //  UNIM|DEZM|UNIH|DEZH
+uint8_t clock[4] = {0x00,0x00,0x00,0x00};
+// |0|0|:|0|0| | | | | | |
+void displayPrint(){
+  String msg = "";
+  msg += clock[3];
+  msg += clock[2];
   msg += ":";
-  if(minuto < 10){
-    msg += "0";
-  }
-  msg += minuto;
-  msg += ":";
-  if(segundo < 10){
-    msg += "0";
-  }
-  msg += segundo;
-  if(states & (1 << 2)){
-    msg += "  SETTING  ";
-  }else{
-    msg += ":";
-    if(msegundo < 100){
-      msg += "0";
-    }
-    if(msegundo < 10){
-      msg += "0";
-    }
-    msg += msegundo;
-    msg += "0";
-  }
-  i2cLcd.setCursor(0,3);
+  msg += clock[1];
+  msg += clock[0];
+  i2cLcd.setCursor(2,3);
   i2cLcd.print(msg);
+  Serial.print("  ");
+  Serial.print(msg);
+  msg = "";
+  if(states & (1 << 2)){
+    msg += SETTING;
+  }else{
+    msg += NORMAL;
+  }
+  i2cLcd.setCursor(10,3);
+  i2cLcd.print(msg);
+  Serial.print("    ");
   Serial.print(msg);
   Serial.println();
-  PORTB ^= (1 << PB5);//faz LED_BUILTIN piscar
+  PORTB &= ~(1 << PB5);//apaga LED_BUILTIN
 }
 
 void setup() {
   DDRD  &= ~(1 << PD2);PORTD &= ~(1 << PD2);//pinMode(2,INPUT);//botao da hora
   DDRD  &= ~(1 << PD3);PORTD &= ~(1 << PD3);//pinMode(4,INPUT);//botao do minuto
-  DDRB  |=  (1 << PB5);PORTB &= ~(1 << PB5);//pinMode(13,OUTPUT);digitalWrite(13,LOW);//LED_BUILTIN
-  //Timer operando em modo CTC e Set OC1A COM1A:11 -
-  //Compare Output Mode COM 11=3
-  TCCR1A |=  (1 << COM1A0);
-  TCCR1A |=  (1 << COM1A1);
-  //Waveform Generation Mode WGM 010=2
-  TCCR1A &= ~(1 << WGM10);
-  TCCR1A |=  (1 << WGM11);
-  TCCR1B &= ~(1 << WGM12);
-
-  //definindo prescaler para 1024 CS:101
-  TCCR1B |=  (1 << CS10);
-  TCCR1B &= ~(1 << CS11);
-  TCCR1B |=  (1 << CS12);
-  //Definindo valor limite para comparação
-  OCR1A = 156; //contagem -->> 156*1024*62,5/1000000000 = 0,009984s = 9,984ms
+  DDRB  |=  (1 << PB5);PORTB |=  (1 << PB5);//pinMode(13,OUTPUT);digitalWrite(13,HIGH);//LED_BUILTIN
 
   i2cLcd.begin(20,4);
   i2cLcd.clear();
@@ -94,204 +69,284 @@ void setup() {
   Serial.print("     TAREFA  05     ");
   Serial.println();
   displayPrint();
-  //Limpa a flag Output Compare A Match Flag
-  TIFR1  |=  (1 << OCF1A);
-  timeClock = millis();
+  //Timer operando em modo CTC e Com saídas OC1A e OC1B desconectadas
+  //Compare Output Mode COM1A = 00 e WGM = 12 = 0xC
+  //TIMER COUNTER CONTROL REGISTER A >>>  COM1A|COM1A|COM1B|COM1B|     |     |WGM11|WGM10
+  //TIMER COUNTER CONTROL REGISTER B >>>  ICNC1|ICES1|     |WGM13|WGM12|CS 12| CS11| CS10
+  //TIMER COUNTER CONTROL REGISTER C >>>  FOC1A|FOC1B|     |     |     |     |     |
+  //TIMER INTERRUPTION MASK          >>>       |     | ICIE|     |     |OCIEB|OCIEA| TOIE
+  TCCR1A  = 0x00;//Modo CTC          >>>    0  |  0  |  0  |  0  |  0  |  0  |  0  |  0
+  TCCR1B  = 0x1D;// Prescaler 1024   >>>    0  |  0  |  0  |  1  |  1  |  1  |  0  |  1
+  //Definindo valor limite para comparação
+  OCR1A  = 0x3D09;//contagem -->> 15625*1024*62,5/1000000000 = 1s
+  TCNT1  = 0x0000;//iniciando contador
+  TIMSK1 = 0x02;//Habilita interrupção do Comparador de Saída A
 }
 
 void loop() {
-
-  //buttons control
-	uint8_t curButtons = (PIND & B00001100) >> 2;//máscara para pegar os pinos PD2 e PD3
-	switch(states & B00000011){
-    case 0://HORA OFF | MINUTO OFF
-			switch(curButtons){
-				case 3:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1) && millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						holdButtons = millis();
-						states ^= (1 << 0);
-						states ^= (1 << 1);
-					}
-					break;
-				case 2:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						timeButtonMinuto = millis();
-            if(states & (1 << 2)){
-              minuto++;
-              if(minuto > 59){
-                minuto = 0;
-              }
-						  displayPrint();
-            }
-            states ^= (1 << 1);
-					}
-					break;
-				case 1:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						timeButtonHora = millis();
-            if(states & (1 << 2)){
-              hora++;
-              if(hora > 23){
-                hora = 0;
-              }
-              displayPrint();
-            }
-						states ^= (1 << 0);
-					}
-					break;
-			};
-      break;
-    case 1://HORA ON  | MINUTO OFF
-			switch(curButtons){
-				case 3:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1) && millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						holdButtons = millis();
-						states ^= (1 << 1);
-					}
-					break;
-				case 2:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						timeButtonMinuto = millis();
-            if(states & (1 << 2)){
-              minuto++;
-              if(minuto > 59){
-                minuto = 0;
-              }
-  						displayPrint();
-            }
-	          states ^= (1 << 0);
-						states ^= (1 << 1);
-					}
-					break;
-				case 1:
-					if(millis() >= timeButtonHora+(states & B11111000)){
-            timeButtonHora = millis();
-            if(states & (1 << 2)){
-              hora++;
-              if(hora > 23){
-                hora = 0;
-              }
-  						displayPrint();
-            }
-          }
-					break;
-				case 0:
-					states ^= (1 << 0);
-					break;
-			};
-      break;
-    case 2://HORA OFF | MINUTO ON
-			switch(curButtons){
-				case 3:
-					if(millis() >= timeButtonHora+((states & B11111000) >> 1) && millis() >= timeButtonHora+((states & B11111000) >> 1)){
-						holdButtons = millis();
-						states ^= (1 << 0);
-					}
-					break;
-				case 2:
-          if(millis() >= timeButtonMinuto+(states & B11111000)){
-            timeButtonMinuto = millis();
-            if(states & (1 << 2)){
-              minuto++;
-              if(minuto > 59){
-                minuto = 0;
-              }
-  						displayPrint();
-            }
-          }
-					break;
-				case 1:
-					if(millis() >= timeButtonMinuto+((states & B11111000) >> 1)){
-						timeButtonHora = millis();
-            if(states & (1 << 2)){
-              hora++;
-              if(hora > 23){
-                hora = 0;
-              }
-  						displayPrint();
-            }
-	          states ^= (1 << 0);
-						states ^= (1 << 1);
-					}
-					break;
-				case 0:
-					states ^= (1 << 1);
-					break;
-			};
-      break;
-    case 3://HORA ON  | MINUTO ON
-			switch(curButtons){
-				case 0:
-					if(millis() >= holdButtons+ ((states & B11111000) << 1)){
-	          states ^= (1 << 2);
-						displayPrint();
-	        }
-					states ^= (1 << 0);
-					states ^= (1 << 1);
-          timeClock        = millis();
-          timeButtonHora   = millis();
-          timeButtonMinuto = millis();
-					break;
-				case 1:
-					if(millis() >= holdButtons+ ((states & B11111000) << 1)){
-	          states ^= (1 << 2);
-						displayPrint();
-            timeClock = millis();
-	        }
-					states ^= (1 << 0);
-          timeClock        = millis();
-          timeButtonHora   = millis();
-          timeButtonMinuto = millis();
-					break;
-				case 2:
-					if(millis() >= holdButtons+ ((states & B11111000) << 1)){
-	          states ^= (1 << 2);
-						displayPrint();
-            timeClock = millis();
-	        }
-					states ^= (1 << 1);
-          timeClock        = millis();
-          timeButtonHora   = millis();
-          timeButtonMinuto = millis();
-					break;
-			};
-			break;
-  };
-  if(TIFR1 & (1 << OCF1A)){
-    //Limpa a flag Output Compare A Match Flag
-    TIFR1  |=  (1 << OCF1A);
-    msegundo++;
-    if(msegundo > 99){
-      msegundo = 0;
-      segundo++;
-    }
-    if(segundo > 59){
-      segundo = 0;
-      minuto++;
-    }
-		if(minuto > 59){
-			minuto = 0;
-			hora++;
-		}
-		if(hora > 23){
-			hora = 0;
-		}
+  if(PINB & (1 << PB5)){
     displayPrint();
+  }else{
+    //buttons control
+  	uint8_t curButtons = (PIND & 0x0C) >> 2;//máscara para pegar os pinos PD2 e PD3
+  	switch(states & 0x03){
+      case 0://HORA OFF | MINUTO OFF
+  			switch(curButtons){
+  				case 3://HORA ON | MINUTO ON
+  					if(millis() >= timeButtonHora+(states & 0xF8) && millis() >= timeButtonMinuto+(states & 0xF8)){
+  						holdButtons = millis();
+  						states ^= (1 << 0);
+  						states ^= (1 << 1);
+  					}
+  					break;
+  				case 2://HORA OFF | MINUTO ON
+  					if(millis() >= timeButtonMinuto+(states & 0xF8)){
+  						timeButtonMinuto = millis();
+              if(states & (1 << 2)){
+                clock[0]++;
+                if(clock[0] > 9){
+                  clock[0] = 0;
+                  clock[1]++;
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+              states ^= (1 << 1);
+  					}
+  					break;
+  				case 1://HORA ON | MINUTO OFF
+  					if(millis() >= timeButtonHora+(states & 0xF8)){
+  						timeButtonHora = millis();
+              if(states & (1 << 2)){
+                clock[2]++;
+                if(clock[3] > 1 && clock[2] > 3){
+                  clock[2] = 0;
+                  clock[3] = 0;
+                }else{
+                  if(clock[2] > 9){
+                    clock[2] = 0;
+                    clock[3]++;
+                  }
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+  						states ^= (1 << 0);
+  					}
+  					break;
+  			};
+        break;
+      case 1://HORA ON  | MINUTO OFF
+  			switch(curButtons){
+  				case 3://HORA ON | MINUTO ON
+  					if(millis() >= timeButtonHora+(states & 0xF8) && millis() >= timeButtonMinuto+(states & 0xF8)){
+  						holdButtons = millis();
+  						states ^= (1 << 1);
+  					}
+  					break;
+  				case 2://HORA OFF | MINUTO ON
+  					if(millis() >= timeButtonMinuto+(states & 0xF8)){
+  						timeButtonMinuto = millis();
+              if(states & (1 << 2)){
+                clock[2]++;
+                if(clock[2] > 9){
+                  clock[2] = 0;
+                  clock[3]++;
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+  	          states ^= (1 << 0);
+  						states ^= (1 << 1);
+  					}
+  					break;
+  				case 1://HORA ON | MINUTO OFF
+  					if(millis() >= timeButtonHora+((states & 0xF8) << 1)){
+              timeButtonHora = millis();
+              if(states & (1 << 2)){
+                clock[2]++;
+                if(clock[3] > 1 && clock[2] > 3){
+                  clock[2] = 0;
+                  clock[3] = 0;
+                }else{
+                  if(clock[2] > 9){
+                    clock[2] = 0;
+                    clock[3]++;
+                  }
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+            }
+  					break;
+  				case 0:
+  					states ^= (1 << 0);
+  					break;
+  			};
+        break;
+      case 2://HORA OFF | MINUTO ON
+  			switch(curButtons){
+  				case 3:
+  					if(millis() >= timeButtonHora+(states & 0xF8) && millis() >= timeButtonMinuto+(states & 0xF8)){
+  						holdButtons = millis();
+  						states ^= (1 << 0);
+  					}
+  					break;
+  				case 2:
+            if(millis() >= timeButtonMinuto+((states & 0xF8) << 1)){
+              timeButtonMinuto = millis();
+              if(states & (1 << 2)){
+                clock[0]++;
+                if(clock[0] > 9){
+                  clock[0] = 0;
+                  clock[1]++;
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+            }
+  					break;
+  				case 1:
+  					if(millis() >= timeButtonHora+(states & 0xF8)){
+  						timeButtonHora = millis();
+              if(states & (1 << 2)){
+                clock[2]++;
+                if(clock[3] > 1 && clock[2] > 3){
+                  clock[2] = 0;
+                  clock[3] = 0;
+                }else{
+                  if(clock[2] > 9){
+                    clock[2] = 0;
+                    clock[3]++;
+                  }
+                }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+  	          states ^= (1 << 0);
+  						states ^= (1 << 1);
+  					}
+  					break;
+  				case 0:
+  					states ^= (1 << 1);
+  					break;
+  			};
+        break;
+      case 3://HORA ON  | MINUTO ON
+  			switch(curButtons){
+  				case 0:
+  					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
+  	          states ^= (1 << 2);
+              if(states & (1 << 2)){
+                TCCR1B  = 0x00;//desabilita timer
+              }else{
+                TCCR1B = 0x1D;//habilita timer
+                TCNT1  = 0x0000;//iniciando contador
+                segundo = 0;
+              }
+              PORTB |=  (1 << PB5);//acende LED_BUILTIN
+  	        }
+  					states ^= (1 << 0);
+  					states ^= (1 << 1);
+            //timeClock        = millis();
+            timeButtonHora   = millis();
+            timeButtonMinuto = millis();
+  					break;
+  				case 1:
+  					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
+  	          states ^= (1 << 2);
+              if(states & (1 << 2)){
+                TCCR1B  = 0x00;//desabilita timer
+              }else{
+                TCCR1B = 0x1D;//habilita timer
+                TCNT1  = 0x0000;//iniciando contador
+                segundo = 0;
+              }
+              PORTB |=  (1 << PB5);//acende LED_BUILTIN
+  	        }
+  					states ^= (1 << 0);
+            //timeClock        = millis();
+            timeButtonHora   = millis();
+            timeButtonMinuto = millis();
+  					break;
+  				case 2:
+  					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
+  	          states ^= (1 << 2);
+              if(states & (1 << 2)){
+                TCCR1B   = 0x00;//desabilita timer
+              }else{
+                TCCR1B = 0x1D;//habilita timer
+                TCNT1  = 0x0000;//iniciando contador
+                segundo = 0;
+              }
+              PORTB |=  (1 << PB5);//acende LED_BUILTIN
+  	        }
+  					states ^= (1 << 1);
+            timeButtonHora   = millis();
+            timeButtonMinuto = millis();
+  					break;
+  			};
+  			break;
+    };
   }
-  // if(~states & (1 << 2) && millis() >= timeClock+1000){
-  //   timeClock = millis();
-  //   segundo++;
-  //   if(segundo >59){
-  //     segundo = 0;
-  //     minuto++;
-  //   }
-	// 	if(minuto > 59){
-	// 		minuto = 0;
-	// 		hora++;
-	// 	}
-	// 	if(hora > 23){
-	// 		hora = 0;
-	// 	}
-	// 	displayPrint();
-  // }
+}
+//Rotina de interrupção para contagem dos segundos e controle do relógio
+ISR(TIMER1_COMPA_vect){
+  TCNT1 = 0x0000;// Reinicializa o registrador do Timer1
+  segundo++;
+  if(segundo > 59){
+    segundo = 0;
+    switch (clock[0]){
+      case 0:
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+        //unidades dos minutos
+        clock[0]++;
+        break;
+      default:
+        switch (clock[1]){
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+            //dezenas dos minutos
+            clock[0]=0;
+            clock[1]++;
+            break;
+          default:
+            clock[0] = 0;//zera minutos
+            clock[1] = 0;
+            switch (clock[2]){
+              case 0:
+              case 1:
+              case 2:
+              case 3:
+                if(clock[3] > 1){
+                  clock[2] = 0;
+                  clock[3] = 0;
+                  break;
+                }//verifica se maior que 23 horas
+              case 4:
+              case 5:
+              case 6:
+              case 7:
+              case 8:
+                //unidades das horas
+                clock[2]++;
+                break;
+              default:
+                switch (clock[3]){
+                  clock[2] = 0;
+                  clock[3]++;//dezenas das horas
+                  break;
+                };
+                break;
+            };
+            break;
+        };
+        break;
+    };
+    PORTB |=  (1 << PB5);//acende LED_BUILTIN
+  }
 }
