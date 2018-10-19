@@ -21,6 +21,5 @@ Cada mudança no intervalo entre cada piscada é enviado via serial e apresentad
 # Tarefa 05: Timers
 * Relógio digital usando Timer no modo CTC
 * Dois botões permitem ajustar a hora e o minuto
- * Segurando os dois botôes ao mesmo tempo por mais de 500ms o relógio entra no modo de configuração, onde cada botão permite incrementar a hora ou o minuto.
- * Segurando os botões por mais de 500ms no modo de configuração o reloógio volta ao modo normal de operação com a hora definida.
-* ~~A tela fica acessa por um minuto, após esse tempo ela apaga para economizar energia. Para reacender a tela basta clicar em um dos botões.~~
+ * Segurando os dois botôes ao mesmo tempo por mais de 1s o modo de operação do relógio é alternado entre modo normal (relógio controlado pelo timer) e modo de configuração (relógio controlado pelos botões).
+* A tela fica acessa por 5 minutos, após esse tempo ela se apaga para economizar energia. A tela volta a acender caso um dos botões seja pressionado.
