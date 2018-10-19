@@ -12,6 +12,7 @@ LiquidCrystal_I2C i2cLcd(0x27,2,1,0,4,5,6,7,3,POSITIVE);
 
 #define SETTING "SETTING"
 #define NORMAL  "       "
+#define TELA 5
 //uint64_t timeClock;
 uint64_t timeButtonHora;
 uint64_t timeButtonMinuto;
@@ -20,9 +21,10 @@ uint64_t holdButtons;
 uint8_t states  = 0xF8;
 //Cada digito do Relógio
 uint8_t segundo = 0;
+uint8_t telaOn  = TELA;
                 //  UNIM|DEZM|UNIH|DEZH
 uint8_t clock[4] = {0x00,0x00,0x00,0x00};
-// |0|0|:|0|0| | | | | | |
+
 void displayPrint(){
   String msg = "";
   msg += clock[3];
@@ -30,6 +32,7 @@ void displayPrint(){
   msg += ":";
   msg += clock[1];
   msg += clock[0];
+  i2cLcd.setBacklight(telaOn);
   i2cLcd.setCursor(2,3);
   i2cLcd.print(msg);
   Serial.print("  ");
@@ -97,6 +100,10 @@ void loop() {
   						holdButtons = millis();
   						states ^= (1 << 0);
   						states ^= (1 << 1);
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
   					}
   					break;
   				case 2://HORA OFF | MINUTO ON
@@ -108,6 +115,10 @@ void loop() {
                   clock[0] = 0;
                   clock[1]++;
                 }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+              if(telaOn == 0){
+                telaOn = TELA;
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
               states ^= (1 << 1);
@@ -129,6 +140,10 @@ void loop() {
                 }
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
   						states ^= (1 << 0);
   					}
   					break;
@@ -139,6 +154,10 @@ void loop() {
   				case 3://HORA ON | MINUTO ON
   					if(millis() >= timeButtonHora+(states & 0xF8) && millis() >= timeButtonMinuto+(states & 0xF8)){
   						holdButtons = millis();
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
   						states ^= (1 << 1);
   					}
   					break;
@@ -151,11 +170,17 @@ void loop() {
                   clock[2] = 0;
                   clock[3]++;
                 }
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+              if(telaOn == 0){
+                telaOn = TELA;
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
   	          states ^= (1 << 0);
   						states ^= (1 << 1);
   					}
+            telaOn = 1;
   					break;
   				case 1://HORA ON | MINUTO OFF
   					if(millis() >= timeButtonHora+((states & 0xF8) << 1)){
@@ -173,6 +198,10 @@ void loop() {
                 }
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
             }
   					break;
   				case 0:
@@ -185,6 +214,10 @@ void loop() {
   				case 3:
   					if(millis() >= timeButtonHora+(states & 0xF8) && millis() >= timeButtonMinuto+(states & 0xF8)){
   						holdButtons = millis();
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
   						states ^= (1 << 0);
   					}
   					break;
@@ -197,6 +230,10 @@ void loop() {
                   clock[0] = 0;
                   clock[1]++;
                 }
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
+              if(telaOn == 0){
+                telaOn = TELA;
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
             }
@@ -217,6 +254,10 @@ void loop() {
                 }
                 PORTB |=  (1 << PB5);//acende LED_BUILTIN
               }
+              if(telaOn == 0){
+                telaOn = TELA;
+                PORTB |=  (1 << PB5);//acende LED_BUILTIN
+              }
   	          states ^= (1 << 0);
   						states ^= (1 << 1);
   					}
@@ -231,11 +272,7 @@ void loop() {
   				case 0:
   					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
   	          states ^= (1 << 2);
-              if(states & (1 << 2)){
-                TCCR1B  = 0x00;//desabilita timer
-              }else{
-                TCCR1B = 0x1D;//habilita timer
-                TCNT1  = 0x0000;//iniciando contador
+              if(!(states & (1 << 2))){
                 segundo = 0;
               }
               PORTB |=  (1 << PB5);//acende LED_BUILTIN
@@ -249,15 +286,15 @@ void loop() {
   				case 1:
   					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
   	          states ^= (1 << 2);
-              if(states & (1 << 2)){
-                TCCR1B  = 0x00;//desabilita timer
-              }else{
-                TCCR1B = 0x1D;//habilita timer
-                TCNT1  = 0x0000;//iniciando contador
+              if(!(states & (1 << 2))){
                 segundo = 0;
               }
               PORTB |=  (1 << PB5);//acende LED_BUILTIN
   	        }
+            if(telaOn == 0){
+              telaOn = TELA;
+              PORTB |=  (1 << PB5);//acende LED_BUILTIN
+            }
   					states ^= (1 << 0);
             //timeClock        = millis();
             timeButtonHora   = millis();
@@ -266,15 +303,15 @@ void loop() {
   				case 2:
   					if(millis() >= holdButtons+ ((states & 0xF8) << 2)){
   	          states ^= (1 << 2);
-              if(states & (1 << 2)){
-                TCCR1B   = 0x00;//desabilita timer
-              }else{
-                TCCR1B = 0x1D;//habilita timer
-                TCNT1  = 0x0000;//iniciando contador
+              if(!(states & (1 << 2))){
                 segundo = 0;
               }
               PORTB |=  (1 << PB5);//acende LED_BUILTIN
   	        }
+            if(telaOn == 0){
+              telaOn = TELA;
+              PORTB |=  (1 << PB5);//acende LED_BUILTIN
+            }
   					states ^= (1 << 1);
             timeButtonHora   = millis();
             timeButtonMinuto = millis();
@@ -290,7 +327,14 @@ ISR(TIMER1_COMPA_vect){
   segundo++;
   if(segundo > 59){
     segundo = 0;
-    switch (clock[0]){
+    if(telaOn){
+      telaOn--;
+      if(!telaOn){
+        PORTB |=  (1 << PB5);//acende LED_BUILTIN}
+      }
+    }
+    if(!(states & (1 << 2))){
+      switch (clock[0]){
       case 0:
       case 1:
       case 2:
@@ -346,7 +390,8 @@ ISR(TIMER1_COMPA_vect){
             break;
         };
         break;
-    };
-    PORTB |=  (1 << PB5);//acende LED_BUILTIN
+      };
+      PORTB |=  (1 << PB5);//acende LED_BUILTIN}
+    }
   }
 }
