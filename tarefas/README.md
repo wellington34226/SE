@@ -23,3 +23,11 @@ Cada mudança no intervalo entre cada piscada é enviado via serial e apresentad
 * Dois botões permitem ajustar a hora e o minuto
  * Segurando os dois botôes ao mesmo tempo por mais de 1s o modo de operação do relógio é alternado entre modo normal (relógio controlado pelo timer) e modo de configuração (relógio controlado pelos botões).
 * A tela fica acessa por 5 minutos, após esse tempo ela se apaga para economizar energia. A tela volta a acender caso um dos botões seja pressionado.
+
+# Tarefa 02/03/05: Junção das tarefas 02, 03 e 05
+* Sensores de Infravermelho e Vibração.
+* Sensor de força resistivo usado com o comparador analógico.
+* Relógio digital com uso de timers.
+* Dois botões permitem ajustar a hora e o minuto do reloógio.
+* A tela LCD fica ligada por um tempo, quando esse tempo termina ela apaga.
+ * Qualquer ação (sensores ou botões) fazem a tela ser ligada novamente.
