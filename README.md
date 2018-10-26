@@ -25,3 +25,6 @@ Professor: [Francisco Santanna](https://github.com/fsantanna-uerj/SE)
   - Como cada sensor e atuador é programado?
   - Ideia para projeto final?
 - [x] **05** Timers
+
+# Projeto: Comunicação RF
+- Pré-projeto no link https://github.com/AnnyCaroline/SensorNetwork
