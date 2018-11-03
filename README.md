@@ -26,5 +26,5 @@ Professor: [Francisco Santanna](https://github.com/fsantanna-uerj/SE)
   - Ideia para projeto final?
 - [x] **05** Timers
 
-# Projeto: Comunicação RF
-- Pré-projeto no link https://github.com/AnnyCaroline/SensorNetwork
+# Projeto Final
+- Acessar: https://github.com/AnnyCaroline/SensorNetwork
